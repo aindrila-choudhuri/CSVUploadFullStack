@@ -8,7 +8,7 @@ const accountStatementSchema = new Schema({
   unitPrice:    { type: Number, Required:'Unit price cannot be left blank.'},
   unitsBought: { type: Number , Required: 'Units bought cannot be left blank'},
   totalPrice: { type: Number, Required: 'Total price cannot be left blank'},
-  dateTime: { type: String, Required: 'Date cannot be left blank' },
+  dateTime: { type: Date, Required: 'Date cannot be left blank' },
   userID: { type: String, Required: 'User ID cannot be left blank' }
 });
 

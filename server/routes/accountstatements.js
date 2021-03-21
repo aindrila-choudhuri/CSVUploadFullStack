@@ -24,7 +24,6 @@ routes.post("/upload", (req, res) => {
             progress += chunk.length;
             let perc = parseInt((progress/total) * 100);
             status = perc;
-            console.log("====status====", status);
         });
 
         var upload = csvUpload.single("file");
@@ -46,7 +45,7 @@ routes.post("/upload", (req, res) => {
             .on("data", (row) => {
                 const filter = {
                 folioNumber: row.folio_number,
-                dateTime: row.date_time
+                dateTime: new Date(row.date_time)
                 };
                 
                 const update = {$set: {
@@ -54,7 +53,7 @@ routes.post("/upload", (req, res) => {
                 unitPrice: parseFloat(row.unit_price),
                 unitsBought: parseFloat(row.units_bought),
                 totalPrice: parseFloat(row.total_price),
-                dateTime: row.date_time,
+                dateTime: new Date(row.date_time),
                 userID: row.user_id
                 }};
 
@@ -91,9 +90,9 @@ routes.post("/upload", (req, res) => {
     }
 });
 
-routes.get("/reporting/:userID", (req, res) => {
+routes.get("/reporting/:userID", async (req, res) => {
     
-    AccountStatement.aggregate(
+    await AccountStatement.aggregate(
         [   {
                 "$match": {
                     "userID": req.params.userID,
@@ -141,11 +140,21 @@ const getPagination = (page, size) => {
 };
 
 
-routes.get("/", (req, res) => {
+routes.get("/", async (req, res) => {
     const { currentPage, pageSize } = req.query;
     const { limit, offset } = getPagination(currentPage, pageSize);
+    let options = { offset, limit};
+    if (req.query.sortField) {
+        let sort = {};
+        sort[req.query.sortField] = 1;
+        if (req.query.sortOrder) {
+            sort[req.query.sortField] = req.query.sortOrder;
+        }
+        options = { offset, limit, sort }
+    }
+    
 
-    AccountStatement.paginate({}, { offset, limit })
+    await AccountStatement.paginate({}, options)
     .then((data) => {
         res.send({
           totalItems: data.totalDocs,
@@ -155,6 +164,7 @@ routes.get("/", (req, res) => {
         });
     })
     .catch((err) => {
+        console.log("Account Statements fetch error:", err)
         res.status(500).send({
             message:
             err.message || "Some error occurred while retrieving tutorials.",

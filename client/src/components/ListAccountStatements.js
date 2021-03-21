@@ -8,12 +8,15 @@ const config = require("./config");
 function ListAccountStatements() {
     const [accountStatements, setAccountStatements] = useState([]);
     const [row, setRowData] = useState([]);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(20);
-    const [totalAccountStatement, setTotalAccountStatements] = useState(0)
+    const initialPaginationData = {
+        pageSize: 20,
+        totalItems: 0,
+        totalPages: 0, 
+        currentPage: 1
+    }
+    const [paginationData, setPaginationData] = useState(initialPaginationData)
     const [sortedObj, setSortedObj] = useState({columnName: "", isSorted: false, isSortedAsc: false});
 
-    // server side sorting needs to be implemented
     function handleSort(colName, colIndex){
         const nextIsSorteObj = {...sortedObj};
         
@@ -31,29 +34,25 @@ function ListAccountStatements() {
 
         setSortedObj({columnName: colName, isSorted: nextIsSorteObj.isSorted, isSortedAsc: nextIsSorteObj.isSortedAsc});
         
-        const sortedRowArr = [...row]
-        
-        if (nextIsSorteObj.isSortedAsc) {
-            if (colIndex === 4) {
-                sortedRowArr.sort((a, b) => (Date.parse(a[colIndex]) > Date.parse(b[colIndex])) ? 1 : -1);
-            } else {
-                sortedRowArr.sort((a, b) => (a[colIndex] > b[colIndex]) ? 1 : -1);
-            }
-            
-        } else{
-            if (colIndex === 4) {
-                sortedRowArr.sort((a, b) => (Date.parse(a[colIndex]) > Date.parse(b[colIndex])) ? -1 : 1);
-            }else {
-                sortedRowArr.sort((a, b) => (a[colIndex] > b[colIndex]) ? -1 : 1);
-            }
-            
-        }
-        
-        setRowData(sortedRowArr);
     }
 
-    const handlePagination = (number) => {
-        setCurrentPage(number);
+    const handlePagination = (pageNumber) => {
+        let currentPageNumber = paginationData.currentPage
+        if (typeof pageNumber === "number") {
+            currentPageNumber = pageNumber
+        } else {
+            if (pageNumber === "prev") {
+                currentPageNumber = paginationData.currentPage - 1
+            } else {
+                currentPageNumber = paginationData.currentPage + 1
+            }
+        }
+        setPaginationData({
+            pageSize: paginationData.pageSize,
+            totalItems: paginationData.totalItems,
+            totalPages: paginationData.totalPages, 
+            currentPage: currentPageNumber
+        });
     }
 
     const debounce = (fn, delay) => {
@@ -70,12 +69,22 @@ function ListAccountStatements() {
 
     useEffect(() => {
         fetchAccountStatements();
-    }, [currentPage])
+    }, [paginationData.currentPage, sortedObj])
 
     const fetchAccountStatements = async() => {
         try{
-            console.log("==currentPage inside fetchAccountStatements===", currentPage);
-            const response = await fetch(`${config.getAccountStatementsURL}?currentPage=${currentPage}&pageSize=${pageSize}`);
+            console.log("==currentPage inside fetchAccountStatements===", paginationData.currentPage);
+            let url = `${config.getAccountStatementsURL}?currentPage=${paginationData.currentPage}&pageSize=${paginationData.pageSize}`;
+            if (sortedObj.columnName && sortedObj.isSorted) {
+                let sortBy = -1;
+                if (sortedObj.isSortedAsc){
+                    sortBy = 1;
+                }
+                const sortField = mapAPIFieldToDBField(sortedObj.columnName);
+                url +=`&sortField=${sortField}&sortOrder=${sortBy}`
+            }
+            console.log("====url===", url);
+            const response = await fetch(url);
             const data = await response.json();
             console.log("===data====", data);
             data.accountStatements.forEach( accountStatement => accountStatement.dateTime = new Date(accountStatement.dateTime).toString());
@@ -83,21 +92,42 @@ function ListAccountStatements() {
             const result = data.accountStatements.map(({ folioNumber, unitPrice, unitsBought, totalPrice, dateTime, userID }) => [folioNumber, unitPrice, unitsBought, totalPrice, dateTime, userID]);
             console.log("===result====", result);
             setRowData(result);
-            setTotalAccountStatements(data.totalItems)
+            setPaginationData({
+                pageSize: 20,
+                totalItems: data.totalItems,
+                totalPages: data.totalPages, 
+                currentPage: data.currentPage
+            })
         }catch(err) {
             console.log("Error fetching data : ", err);
         }
     }
 
+    const mapAPIFieldToDBField = (apiFieldName) => {
+        const mapObj = {
+            folionumber : "folioNumber",
+            unitprice: "unitPrice",
+            unitsbought: "unitsBought",
+            totalprice: "totalPrice",
+            datetime: "dateTime",
+            userid: "userID"
+        }
+
+        return mapObj[apiFieldName];
+    }
+
     return(
-        <div className="listpod">
-            <h1 className="left">Account Statements</h1>
-            <div>
-                <DataTable headings={HEADINGS} rows={row} sortedObj={sortedObj} changeHandler={handleSort}/>
-                <Pagination  recordsPerPage={pageSize} totalRecords={totalAccountStatement} changeHandler={handlePagination}/>
+        <div className="container">
+            <div className="listAccountStatements">
+                <h1 className="left">Account Statements</h1>
+                <div>
+                    <DataTable headings={HEADINGS} rows={row} sortedObj={sortedObj} changeHandler={handleSort}/>
+                    <Pagination totalPages={paginationData.totalPages} changeHandler={handlePagination}/>
+                </div>
+                
             </div>
-            
         </div>
+        
     )
 }
 

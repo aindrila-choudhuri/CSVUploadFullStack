@@ -1,25 +1,33 @@
 import React from 'react';
 
 const Pagination = (props) => {
-    const {recordsPerPage, totalRecords} = props;
-    const pageNumbers = [];
-    
-    for (let i = 1; i <= Math.ceil(totalRecords/recordsPerPage); i++) {
-        pageNumbers.push(i);
+    const {totalPages} = props;
+    let renderPages = [];
+
+    for (let i = 1; i <= totalPages; i++) {
+        if (i<=3) {
+            renderPages.push(i);
+        }
     }
+
+    renderPages.push("prev");
+    renderPages.push("next");
+
     return(
-        <nav>
-s            <ul className="pagination">
-                {pageNumbers.map(number => (
-                    <li key={number} className="page-item">
-                        <a onClick={e => props.changeHandler(number)} href="!#" className="page-link">
-                            {number}
-                        </a>
-                    </li>
-                ))}
-            </ul>
-        </nav>
+            <nav className="navbar navbar-default">
+                <ul className="pagination ml-auto">
+                    {renderPages.map(number => (
+                        <li key={number} className="page-item">
+                            <a onClick={e => props.changeHandler(number)} href="!#" className="page-link">
+                                {number}
+                            </a>
+                        </li>
+                    ))}
+                </ul>
+            </nav>
+        
     )
 }
+
 
 export default Pagination;

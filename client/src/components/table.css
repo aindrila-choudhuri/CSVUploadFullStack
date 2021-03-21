@@ -50,9 +50,13 @@ table {
     text-align: center;
   }
 
-  .listpod {
+  .listAccountStatements {
     margin-top: 100px;
     margin-bottom: 100px;
     margin-right: 150px;
     margin-left: 80px;
+  }
+
+  @media only screen and (min-width : 1200px) {
+    .container { max-width: 1700px; } 
   }
