@@ -8,58 +8,79 @@ const routes = express.Router({
     mergeParams: true
 })
 
-routes.post("/upload", csvUpload.single("file"), (req, res, next) => {
+let status = 0
+
+routes.get("/checkstatus", (req, res) => {
+    res.status(200).send(status.toString())
+})
+
+routes.post("/upload", (req, res) => {
     try {
-        if (req.file == undefined) {
-        return res.status(400).send("Please upload a CSV file!");
-        }
+        let progress = 0;
 
-        let bulkOps = [];
-        let path = "uploads/" + req.file.filename;
-  
-  
-        fs.createReadStream(path)
-        .pipe(csv.parse({ headers: true }))
-        .on("error", (error) => {
-            throw error.message;
-        })
-        .on("data", (row) => {
-            const filter = {
-            folioNumber: row.folio_number,
-            dateTime: row.date_time
-            };
-            
-            const update = {$set: {
-            folioNumber: row.folio_number,
-            unitPrice: parseFloat(row.unit_price),
-            unitsBought: parseFloat(row.units_bought),
-            totalPrice: parseFloat(row.total_price),
-            dateTime: row.date_time,
-            userID: row.user_id
-            }};
+        let total = req.headers['content-length'];
 
-            const upsertDoc = {
-            updateOne: {
-                filter,
-                update,
-                upsert: true
-            }};
-            
-            bulkOps.push(upsertDoc);
-        })
-        .on("end", () => {
-            AccountStatement.collection.bulkWrite(bulkOps)
-                .then( bulkWriteOpResult => {
-                console.log('BULK update OK');
-                console.log(JSON.stringify(bulkWriteOpResult, null, 2));
-                })
-                .catch( err => {
-                console.log('BULK update error: ', err);
-                console.log(JSON.stringify(err, null, 2));
-            });
-            res.status(200).send({
-                message:
-                    "Uploaded the file successfully: " + req.file.originalname,
+        req.on("data", (chunk) => {
+            progress += chunk.length;
+            let perc = parseInt((progress/total) * 100);
+            status = perc;
+            console.log("====status====", status);
+        });
+
+        var upload = csvUpload.single("file");
+
+        upload(req, res, (err) => {
+            if (req.file == undefined) {
+                return res.status(400).send("Please upload a CSV file!");
+            }
+
+            let bulkOps = [];
+            let path = "uploads/" + req.file.filename;
+
+
+            fs.createReadStream(path)
+            .pipe(csv.parse({ headers: true }))
+            .on("error", (error) => {
+                throw error.message;
+            })
+            .on("data", (row) => {
+                const filter = {
+                folioNumber: row.folio_number,
+                dateTime: row.date_time
+                };
+                
+                const update = {$set: {
+                folioNumber: row.folio_number,
+                unitPrice: parseFloat(row.unit_price),
+                unitsBought: parseFloat(row.units_bought),
+                totalPrice: parseFloat(row.total_price),
+                dateTime: row.date_time,
+                userID: row.user_id
+                }};
+
+                const upsertDoc = {
+                updateOne: {
+                    filter,
+                    update,
+                    upsert: true
+                }};
+                
+                bulkOps.push(upsertDoc);
+            })
+            .on("end", () => {
+                AccountStatement.collection.bulkWrite(bulkOps)
+                    .then( bulkWriteOpResult => {
+                    console.log('BULK update OK');
+                    //console.log(JSON.stringify(bulkWriteOpResult, null, 2));
+                    })
+                    .catch( err => {
+                    console.log('BULK update error: ', err);
+                    console.log(JSON.stringify(err, null, 2));
+                });
+                res.status(200).send({
+                    message:
+                        "Uploaded the file successfully: " + req.file.originalname,
+                });
             });
         });
     } catch (error) {
@@ -68,27 +89,6 @@ routes.post("/upload", csvUpload.single("file"), (req, res, next) => {
           message: "Could not upload the file: " + req.file.originalname,
         });
     }
-});
-
-routes.get("/", (req, res) => {
-    const { currentPage, pageSize } = req.query;
-    const { limit, offset } = getPagination(currentPage, pageSize);
-
-    AccountStatement.paginate({}, { offset, limit })
-    .then((data) => {
-        res.send({
-          totalItems: data.totalDocs,
-          accountStatements: data.docs,
-          totalPages: data.totalPages,
-          currentPage: data.page,
-        });
-    })
-    .catch((err) => {
-        res.status(500).send({
-            message:
-            err.message || "Some error occurred while retrieving tutorials.",
-        });
-    });
 });
 
 routes.get("/reporting/:userID", (req, res) => {
@@ -139,6 +139,28 @@ const getPagination = (page, size) => {
     const offset = page && page > 0 ? (page-1) * limit : 0;
     return { limit, offset };
 };
+
+
+routes.get("/", (req, res) => {
+    const { currentPage, pageSize } = req.query;
+    const { limit, offset } = getPagination(currentPage, pageSize);
+
+    AccountStatement.paginate({}, { offset, limit })
+    .then((data) => {
+        res.send({
+          totalItems: data.totalDocs,
+          accountStatements: data.docs,
+          totalPages: data.totalPages,
+          currentPage: data.page,
+        });
+    })
+    .catch((err) => {
+        res.status(500).send({
+            message:
+            err.message || "Some error occurred while retrieving tutorials.",
+        });
+    });
+});
 
 module.exports = {
     routes
