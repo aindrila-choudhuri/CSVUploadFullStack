@@ -1,10 +1,12 @@
 const express = require('express');
+const cors = require('cors')
 const {
   routes: accountStatementRoutes
 } = require("./routes/accountstatements")
 const connectDB = require("./database/connection");
  
 const app = express();
+app.use(cors())
 
 app.use(express.urlencoded({ extended: true }));
 app.use("/accountstatements", accountStatementRoutes);
