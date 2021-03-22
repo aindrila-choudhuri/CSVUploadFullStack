@@ -3,10 +3,14 @@ import {HEADINGS} from "./constants";
 import DataTable from "./DataTable";
 import "./table.css";
 import Pagination from "./Pagination";
+import FileUpload from "./FileUpload";
+import axios from 'axios';
+
 const config = require("./config");
 
 function ListAccountStatements() {
     const [accountStatements, setAccountStatements] = useState([]);
+    const [selectedFile, setSelectedFile] = useState(null)
     const [row, setRowData] = useState([]);
     const initialPaginationData = {
         pageSize: 20,
@@ -116,9 +120,20 @@ function ListAccountStatements() {
         return mapObj[apiFieldName];
     }
 
+    const handleFileSelected = (e) => {
+        setSelectedFile(e.target.files[0]);
+    }
+
+    const handleFileUpload = () => {
+        const fd = new FormData();
+        fd.append("file", selectedFile, selectedFile.name);
+        axios.post(`${config.getAccountStatementsURL}/upload`, fd).then(res => console.log(res));
+    }
+
     return(
         <div className="container">
             <div className="listAccountStatements">
+                <FileUpload changeHandler={handleFileSelected} clickHandler={handleFileUpload}/>
                 <h1 className="left">Account Statements</h1>
                 <div>
                     <DataTable headings={HEADINGS} rows={row} sortedObj={sortedObj} changeHandler={handleSort}/>

@@ -20,7 +20,6 @@
   },
   "homepage": "https://github.com/aindrila-choudhuri/CSVUploadFullStack#readme",
   "dependencies": {
-    "concurrently": "^6.0.0",
-    "font-awesome": "^4.7.0"
+    "concurrently": "^6.0.0"
   }
 }
