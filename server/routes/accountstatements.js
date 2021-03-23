@@ -92,17 +92,17 @@ routes.post("/upload", (req, res) => {
             .on("end", () => {
                 AccountStatement.collection.bulkWrite(bulkOps)
                     .then( bulkWriteOpResult => {
-                    console.log('BULK update OK');
-                    //console.log(JSON.stringify(bulkWriteOpResult, null, 2));
+                        console.log('BULK update OK');
+                        res.status(200).send({
+                            message:
+                                "Uploaded the file successfully: " + req.file.originalname,
+                        });
                     })
                     .catch( err => {
                     console.log('BULK update error: ', err);
                     console.log(JSON.stringify(err, null, 2));
                 });
-                res.status(200).send({
-                    message:
-                        "Uploaded the file successfully: " + req.file.originalname,
-                });
+                
             });
         });
     } catch (error) {

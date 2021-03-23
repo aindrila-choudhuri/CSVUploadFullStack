@@ -1,15 +1,16 @@
 import React, {useEffect, useState} from 'react';
-import {HEADINGS} from "./constants";
+import {HEADINGS} from "../constants/constants";
 import DataTable from "./DataTable";
 import "./table.css";
 import Pagination from "./Pagination";
 import FileUpload from "./FileUpload";
 import axios from 'axios';
 
-const config = require("./config");
+const config = require("../config/config");
 
 function ListAccountStatements() {
     const [accountStatements, setAccountStatements] = useState([]);
+    const [isUpdated, setIsUpdated] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null)
     const [row, setRowData] = useState([]);
     const initialPaginationData = {
@@ -59,25 +60,12 @@ function ListAccountStatements() {
         });
     }
 
-    const debounce = (fn, delay) => {
-        let setTimeoutID;
-        return function(...args) {
-            if (setTimeoutID) {
-                clearTimeout(setTimeoutID);
-            }
-            setTimeoutID = setTimeout(() => {
-                fn(...args)
-            }, delay);
-        }
-    }
-
     useEffect(() => {
         fetchAccountStatements();
-    }, [paginationData.currentPage, sortedObj])
-
+    }, [paginationData.currentPage, sortedObj, isUpdated])
+    
     const fetchAccountStatements = async() => {
         try{
-            console.log("==currentPage inside fetchAccountStatements===", paginationData.currentPage);
             let url = `${config.getAccountStatementsURL}?currentPage=${paginationData.currentPage}&pageSize=${paginationData.pageSize}`;
             if (sortedObj.columnName && sortedObj.isSorted) {
                 let sortBy = -1;
@@ -87,26 +75,23 @@ function ListAccountStatements() {
                 const sortField = mapAPIFieldToDBField(sortedObj.columnName);
                 url +=`&sortField=${sortField}&sortOrder=${sortBy}`
             }
-            console.log("====url===", url);
             const response = await fetch(url);
             const data = await response.json();
-            console.log("===data====", data);
             data.accountStatements.forEach( accountStatement => accountStatement.dateTime = new Date(accountStatement.dateTime).toString());
             setAccountStatements(data.accountStatements);
             const result = data.accountStatements.map(({ folioNumber, unitPrice, unitsBought, totalPrice, dateTime, userID }) => [folioNumber, unitPrice, unitsBought, totalPrice, dateTime, userID]);
-            console.log("===result====", result);
             setRowData(result);
             setPaginationData({
                 pageSize: 20,
                 totalItems: data.totalItems,
                 totalPages: data.totalPages, 
                 currentPage: data.currentPage
-            })
+            });
         }catch(err) {
             console.log("Error fetching data : ", err);
         }
     }
-
+ 
     const mapAPIFieldToDBField = (apiFieldName) => {
         const mapObj = {
             folionumber : "folioNumber",
@@ -125,13 +110,20 @@ function ListAccountStatements() {
     }
 
     const handleFileUpload = () => {
-        const fd = new FormData();
-        fd.append("file", selectedFile, selectedFile.name);
-        axios.post(`${config.getAccountStatementsURL}/upload`, fd).then(res => console.log(res));
+        if (selectedFile && selectedFile.name) {
+            const fd = new FormData();
+            fd.append("file", selectedFile, selectedFile.name);
+            axios.post(`${config.getAccountStatementsURL}/upload`, fd)
+            .then(res => {
+                console.log("Successfully uploaded file");
+                setIsUpdated(!isUpdated);
+            })
+            .catch(err => console.log("File upload error", err));
+        }
     }
 
     return(
-        <div className="container">
+        <div className="container" data-testid="accountStatementsList">
             <div className="listAccountStatements">
                 <FileUpload changeHandler={handleFileSelected} clickHandler={handleFileUpload}/>
                 <h1 className="left">Account Statements</h1>

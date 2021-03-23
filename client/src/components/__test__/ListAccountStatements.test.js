@@ -54,32 +54,31 @@ const accountStatementObj = {
     ]
 }
 
-it("renders NewsList component without crashing", () => {
-    // global.fetch = jest.fn(() => Promise.resolve({
-    //     json: () => Promise.resolve(accountStatementObj)
-    // }));
+it("renders ListAccountStatements component without crashing", () => {
+    global.fetch = jest.fn(() => Promise.resolve({
+        json: () => Promise.resolve(accountStatementObj)
+    }));
 
     const div = document.createElement("div");
     ReactDOM.render(<ListAccountStatements />, div);
 });
 
-// it("renders NewsList component correctly", async() => {
-//     global.fetch = jest.fn(() => Promise.resolve({
-//         json: () => Promise.resolve(newsObj)
-//     }));
+it("renders ListAccountStatements component correctly", async() => {
+    global.fetch = jest.fn(() => Promise.resolve({
+        json: () => Promise.resolve(accountStatementObj)
+    }));
 
-//     await act(async() => render(<NewsList />, container));
-//     const newsListDiv = document.querySelector("[data-testid=newslist]");
-//     expect(newsListDiv.children.length).toBe(2);
-//     expect(newsListDiv.children[0]).toHaveClass("topnav");
-//     expect(newsListDiv.children[1]).toHaveClass("all__news");
-// });
+    await act(async() => render(<ListAccountStatements />, container));
+    const accountStatementsList = document.querySelector("[data-testid=accountStatementsList]");
+    expect(accountStatementsList.children.length).toBe(1);
+    expect(accountStatementsList.children[0]).toHaveClass("listAccountStatements");
+});
 
-// it("NewsList component snapshot testing", async() => {
-//     global.fetch = jest.fn(() => Promise.resolve({
-//         json: () => Promise.resolve(newsObj)
-//     }));
+it("ListAccountStatements component snapshot testing", async() => {
+    global.fetch = jest.fn(() => Promise.resolve({
+        json: () => Promise.resolve(accountStatementObj)
+    }));
 
-//     const domTree = await renderer.create(<NewsList />).toJSON();
-//     expect(domTree).toMatchSnapshot();
-// });
+    const domTree = await renderer.create(<ListAccountStatements />).toJSON();
+    expect(domTree).toMatchSnapshot();
+});

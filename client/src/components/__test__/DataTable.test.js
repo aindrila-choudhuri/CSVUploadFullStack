@@ -4,7 +4,7 @@ import DataTable from "./../DataTable";
 import {render, cleanup} from '@testing-library/react';
 import "@testing-library/jest-dom/extend-expect";
 import renderer from 'react-test-renderer';
-import {HEADINGS} from "./../constants";
+import {HEADINGS} from "./../../constants/constants";
 
 const sortedObj = {
     columnName: "",

@@ -3,7 +3,7 @@ const configs = require("./../config/configs")
 
 const connectDB = async () => {
    return new Promise((resolve, reject) => {
-      mongoose.connect(configs.mongodb.dbURI2, {useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true})
+      mongoose.connect(configs.mongodb.dbURI, {useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true})
          .then((res, err) => {
             if(err) return reject(err);
             console.log("Connected to DB");
