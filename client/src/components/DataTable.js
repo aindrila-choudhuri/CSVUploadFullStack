@@ -4,7 +4,7 @@ import Cell from './Cell';
 export default class DataTable extends React.Component {
   renderHeadingRow = (_cell, cellIndex) => {
     const {headings, sortedObj} = this.props;
-    
+
     return (
       <Cell
         key={`heading-${cellIndex}`}
@@ -47,7 +47,7 @@ export default class DataTable extends React.Component {
     const tbodyMarkup = rows.map(this.renderRow);
   
     return (
-      <table className="container">
+      <table data-testid="dataTableID" className="container">
         <thead>{theadMarkup}</thead>
         <tbody>{tbodyMarkup}</tbody>
       </table>

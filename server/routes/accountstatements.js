@@ -8,22 +8,45 @@ const routes = express.Router({
     mergeParams: true
 })
 
-let status = 0
+let status = {
+    "percentageStatus" : 0,
+    "overallStatus": "",
+    "fileName" : ""
+}
 
 routes.get("/checkstatus", (req, res) => {
-    res.status(200).send(status.toString())
+    res.status(200).send({status});
 })
 
 routes.post("/upload", (req, res) => {
     try {
         let progress = 0;
+        let perc = 0
 
         let total = req.headers['content-length'];
 
         req.on("data", (chunk) => {
             progress += chunk.length;
-            let perc = parseInt((progress/total) * 100);
-            status = perc;
+            perc = parseInt((progress/total) * 100);
+            percentageStatus = perc;
+            status = {
+                percentageStatus : perc,
+                overallStatus: "in progress"
+            }
+        });
+        
+        req.on("error", (chunk) => {
+            status = {
+                percentageStatus : perc,
+                overallStatus: "error"
+            }
+        });
+
+        req.on("end", (chunk) => {
+            status = {
+                percentageStatus : perc,
+                overallStatus: "completed"
+            }
         });
 
         var upload = csvUpload.single("file");
@@ -32,7 +55,7 @@ routes.post("/upload", (req, res) => {
             if (req.file == undefined) {
                 return res.status(400).send("Please upload a CSV file!");
             }
-
+            status.fileName = req.file.originalname;
             let bulkOps = [];
             let path = "uploads/" + req.file.filename;
 
@@ -83,7 +106,7 @@ routes.post("/upload", (req, res) => {
             });
         });
     } catch (error) {
-        console.log(error);
+        console.log("Upload file error: ", error);
         res.status(500).send({
           message: "Could not upload the file: " + req.file.originalname,
         });
@@ -91,7 +114,6 @@ routes.post("/upload", (req, res) => {
 });
 
 routes.get("/reporting/:userID", async (req, res) => {
-    
     await AccountStatement.aggregate(
         [   {
                 "$match": {
@@ -125,8 +147,10 @@ routes.get("/reporting/:userID", async (req, res) => {
         ],
         (err,results) => {
             if (err) {
+                console.log("/reporting/:userID API returned error from database: ", err)
                 res.send(err);
             } else {
+                console.log("/reporting/:userID API successfully fetched data from database")
                 res.json(results);
             }
         }
@@ -142,7 +166,9 @@ const getPagination = (page, size) => {
 
 routes.get("/", async (req, res) => {
     const { currentPage, pageSize } = req.query;
+    
     const { limit, offset } = getPagination(currentPage, pageSize);
+    
     let options = { offset, limit};
     if (req.query.sortField) {
         let sort = {};
@@ -156,7 +182,8 @@ routes.get("/", async (req, res) => {
 
     await AccountStatement.paginate({}, options)
     .then((data) => {
-        res.send({
+        console.log("accountstatements get API successfully fetched data from database")
+        res.status(200).send({
           totalItems: data.totalDocs,
           accountStatements: data.docs,
           totalPages: data.totalPages,
@@ -164,7 +191,7 @@ routes.get("/", async (req, res) => {
         });
     })
     .catch((err) => {
-        console.log("Account Statements fetch error:", err)
+        console.log("Account Statements API fetch error:", err)
         res.status(500).send({
             message:
             err.message || "Some error occurred while retrieving tutorials.",
